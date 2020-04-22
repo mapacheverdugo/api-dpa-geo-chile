@@ -3,8 +3,9 @@ const express = require("express");
 const router = express.Router();
 
 const comunas = require("../controllers/comunas.controller");
+const regiones = require("../controllers/regiones.controller");
 
-router.get("/test", comunas.test);
+router.get("/test", regiones.test);
 //router.get("/comunas", comunas.getAll);
 //router.get("/comunas/:codigoComuna", comunas.getOne);
 /*

@@ -1,7 +1,7 @@
 const fs = require("fs");
 const axios = require("axios");
 
-var coordenadasGlobal = require("../static/comunas.json");
+const Region = require("../models/region.model");
 
 exports.getAll = async (req, res) => {
   try {
@@ -18,12 +18,36 @@ exports.test = async (req, res) => {
     var query = `
       area[admin_level=2]["ISO3166-1"="CL"] -> .search;
       (
-        rel(area.search)[admin_level=4] -> .relation;
+        rel(area.search)[admin_level=4]["ISO3166-2"="CL-RM"] -> .relation;
         way(r.relation:"outer");
       );
       out ids geom;
     `;
     var r = await overpassQuery(query);
+
+    var region = new Region({
+      nombre: "uwu",
+      codigo: "awa",
+      centro: {
+        lat: -23.7503,
+        lng: -67.6
+      },
+      contorno: [
+        {
+          lat: -21.7503,
+      lng: -68.6
+        },
+        {
+          lat: -22.7503,
+      lng: -69.6
+        },
+        {
+          lat: -20.7503,
+      lng: -66.6
+        },
+      ]
+    });
+    //var result = await region.save();
 
     res.status(200).json(r);
   } catch (error) {
@@ -33,38 +57,4 @@ exports.test = async (req, res) => {
     });
   }
 };
-
-parseRegiones = (regiones) => {
-  var regionesParseadas = [];
-  for (const region of regiones) {
-    var regionParseada = parseRegion(region);
-    regionesParseadas.push(regionParseada);
-  }
-  return regionesParseadas;
-}
-
-parseRegion = (region) => {
-  return {
-    codigo: region.tags["dpachile:id"],
-    nombre: region.tags.name,
-    "ISO3166-2": region.tags["ISO3166-2"]
-  }
-}
-
-overpassQuery = (query) => {
-  query.replace(/\n|\r/g, "");
-  var q = "[out:json];" + query;
-  q = encodeURI(q);
-
-  return new Promise((resolve, reject) => {
-    axios
-      .get(`https://lz4.overpass-api.de/api/interpreter?data=${q}`)
-      .then(async (r) => {
-        resolve(r.data);
-      })
-      .catch((e) => {
-        reject(e)
-      });
-  });
-}
 

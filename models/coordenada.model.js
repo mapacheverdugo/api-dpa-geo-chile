@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-export default mongoose.model("Coordenada", {
+module.exports = mongoose.model("Coordenada", {
     lat: Number,
     lng: Number
 });
