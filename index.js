@@ -41,6 +41,7 @@ app.get("/", (req, res) => {
 
 app.use("/v1", router);
 
-app.listen(3030, () => {
-  console.log("El servidor está inicializado en el puerto 3000");
+let puerto = process.env.PORT ? process.env.PORT : 3030;
+app.listen(puerto, () => {
+  console.log(`El servidor está inicializado en el puerto ${puerto}`);
 });
