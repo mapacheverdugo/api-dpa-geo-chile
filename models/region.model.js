@@ -1,10 +1,19 @@
 const mongoose = require("mongoose");
 
-const Coordenada = require("./coordenada.model");
+const CoordenadaSchema = require("./coordenada.schema");
 
-module.exports = mongoose.model("Region", {
-    codigo: String,
+var schema = new mongoose.Schema({
+    codigo: {
+        type: String,
+        unique: true
+    },
+    "ISO3166-2": {
+        type: String,
+        unique: true
+    },
     nombre: String,
-    centro: Coordenada.schema,
-    contorno: [Coordenada.schema]
+    centro: CoordenadaSchema,
+    contorno: [CoordenadaSchema]
 });
+
+module.exports = mongoose.model("Region", schema);

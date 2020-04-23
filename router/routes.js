@@ -13,8 +13,10 @@ router.get("/provincias", provincias.getAll);
 router.get("/provincias/:codigoProvincia", provincias.getOne);
 router.get("/provincias/comunas", comunas.getAllByProvincia);
 router.get("/provincias/comunas/:codigoComuna", comunas.getOneByProvincia);
+*/
 
 router.get("/regiones", regiones.getAll);
+/*
 router.get("/regiones/:codigoRegion", regiones.getOne);
 router.get("/regiones/:codigoRegion/provincias", provincias.getAllByRegion);
 router.get("/regiones/:codigoRegion/provincias/:codigoProvincia", provincias.getOneByRegion);
