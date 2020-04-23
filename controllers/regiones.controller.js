@@ -1,8 +1,7 @@
 require("dotenv").config();
 
 const axios = require("axios");
-
-const regionesJson = require("../static/regiones.json");
+const simplify = require("simplify-js");
 
 const RegionModel = require("../models/region.model");
 
