@@ -25,7 +25,7 @@ exports.test = async (req, res) => {
 
 exports.getAll = async (req, res) => {
   try {
-    var regiones = await RegionModel.findOne(
+    var regiones = await RegionModel.find(
       {},
       "nombre codigo ISO3166-2 contorno"
     ).exec();
