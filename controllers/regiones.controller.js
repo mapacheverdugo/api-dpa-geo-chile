@@ -3,15 +3,129 @@ require("dotenv").config();
 const axios = require("axios");
 const simplify = require("simplify-js");
 
-const RegionModel = require("../models/region.model");
+var regionesJson = require("../static/regiones.json");
+var regionesGeoJson = require("../../regiones.json");
 
-exports.test = async (req, res) => {
+exports.getAll = async (req, res) => {
   try {
-    var regiones = parseOverpassRegiones(regionesJson.elements);
+    var regionesSubset = regionesJson.map((region) =>
+      getRegionSubset(region, req.query)
+    );
 
-    for (const region of regiones) {
-      var nuevaRegion = new Region(region);
-      await nuevaRegion.save();
+    res.status(200).json(regionesSubset);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error,
+    });
+  }
+};
+
+exports.getOne = async (req, res) => {
+  try {
+    var coincidencias = regionesJson.filter(
+      (r) => r.codigo == req.params.codigoRegion
+    );
+
+    if (coincidencias.length) {
+      var region = coincidencias[0];
+
+      var regionSubset = getRegionSubset(region, req.query);
+      res.status(200).json(regionSubset);
+    } else {
+      res.status(500).json({
+        error: `No se econtró región con código ${req.params.codigoRegion}`,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error,
+    });
+  }
+};
+
+comparar = async (local) => {
+  var regionesDpa = await getRegionesDeDpa();
+  for (const region of regionesDpa) {
+    let coincidencias = local.filter((c) => c.codigo == region.codigo);
+    if (!coincidencias.length) {
+      console.log(region.codigo, region.nombre);
+    }
+  }
+};
+
+exports.generar = async (req, res) => {
+  req.setTimeout(1000 * 60 * 10);
+  try {
+    var regionesOverpass = await getRegionesDeOverpass();
+    var regionesDpa = await getRegionesDeDpa();
+
+    /*var jsonContent = JSON.stringify(regiones);
+
+    fs.writeFile("./static/regiones.json", jsonContent, "utf8", (error) => {
+      if (error) {
+        console.log(error);
+        res.status(500).json({
+          error,
+        });
+      }
+
+      res.status(200).json(regiones);
+    });*/
+    var regiones = [];
+
+    for (const regionDpa of regionesDpa) {
+      var region = {
+        codigo: regionDpa.codigo,
+        centro: {
+          coordenadas: [regionDpa.lat, regionDpa.lng],
+        },
+      };
+
+      var regionGeoJson =
+        regionesGeoJson.features.filter(
+          (c) => c.properties.codregion == parseInt(regionDpa.codigo)
+        )[0] || null;
+      var regionOverpass =
+        regionesOverpass.elements.filter(
+          (c) => c.tags["dpachile:id"] == regionDpa.codigo
+        )[0] || null;
+
+      if (regionOverpass) {
+        region.nombre = regionOverpass.tags.name;
+        region["ISO3166-2"] = regionOverpass.tags["ISO3166-2"];
+        region.referencia = regionOverpass.tags.ref;
+      } else {
+        region.nombre = regionDpa.nombre;
+      }
+
+      if (regionGeoJson) {
+        if (regionGeoJson.geometry.type == "MultiPolygon") {
+          let multipoligono = [];
+          for (const arreglo of regionGeoJson.geometry.coordinates) {
+            multipoligono.push(arreglo[0]);
+          }
+          multipoligono = multipoligono.map((poligono) => {
+            return poligono.map((coordenadas) => {
+              return [coordenadas[1], coordenadas[0]];
+            });
+          });
+          region.poligono = multipoligono;
+        } else {
+          let multipoligono = regionGeoJson.geometry.coordinate.map(
+            (poligono) => {
+              return poligono.map((coordenadas) => {
+                return [coordenadas[1], coordenadas[0]];
+              });
+            }
+          );
+          region.poligono = multipoligono;
+        }
+      } else {
+        region.poligono = null;
+      }
+      regiones.push(region);
     }
 
     res.status(200).json(regiones);
@@ -23,168 +137,127 @@ exports.test = async (req, res) => {
   }
 };
 
-exports.getAll = async (req, res) => {
-  try {
-    var regiones = await RegionModel.find(
-      {},
-      "nombre codigo ISO3166-2 contorno"
-    ).exec();
-    console.log("Ya lo obtuvo pero no se ah");
+getRegionSubset = (region, query) => {
+  var mostrarCentro = true;
+  var mostrarPoligono = false;
+  var mostrarLimites = false;
+  var tolerancia = 0;
 
-    res.status(200).json(regiones);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      error,
-    });
+  comparar(regionesJson);
+
+  if (query && query.poligono == "true") {
+    if (
+      query.tolerancia &&
+      parseFloat(query.tolerancia) &&
+      parseFloat(query.tolerancia) > 0
+    ) {
+      tolerancia = parseFloat(query.tolerancia);
+    }
+
+    mostrarPoligono = true;
   }
+
+  if (query && query.centro == "false") {
+    mostrarCentro = false;
+  }
+
+  if (query && query.limites == "true") {
+    mostrarLimites = true;
+  }
+
+  var regionSubset = {
+    nombre: region.nombre,
+    codigo: region.codigo,
+    "ISO3166-2": region["ISO3166-2"],
+    referencia: region.referencia,
+  };
+
+  if (mostrarCentro) {
+    regionSubset.centro = region.centro;
+  }
+
+  if (mostrarLimites) {
+    var minLat, minLng, maxLat, maxLng;
+    for (const poligono of region.poligono) {
+      for (const parCoordenadas of poligono) {
+        if (minLat == null) minLat = parCoordenadas[0];
+        if (maxLat == null) maxLat = parCoordenadas[0];
+        if (minLng == null) minLng = parCoordenadas[1];
+        if (maxLng == null) maxLng = parCoordenadas[1];
+
+        if (minLat > parCoordenadas[0]) minLat = parCoordenadas[0];
+        if (maxLat < parCoordenadas[0]) maxLat = parCoordenadas[0];
+        if (minLng > parCoordenadas[1]) minLng = parCoordenadas[1];
+        if (maxLng < parCoordenadas[1]) maxLng = parCoordenadas[1];
+      }
+    }
+    regionSubset.limites = [
+      [minLat, minLng],
+      [maxLat, maxLng],
+    ];
+  }
+
+  if (mostrarPoligono) {
+    if (tolerancia > 0 && region.poligono) {
+      var poligonosSimplificados = region.poligono.map((poligono) => {
+        var poligonoParseado = poligono.map((coordenadas) => {
+          return {
+            x: coordenadas[0],
+            y: coordenadas[1],
+          };
+        });
+
+        var puntosSimplificados = simplify(poligonoParseado, tolerancia, true);
+        return puntosSimplificados.map((coordenadas) => {
+          return [coordenadas.x, coordenadas.y];
+        });
+      });
+      regionSubset.poligono = poligonosSimplificados.filter(
+        (p) => p.length > 2
+      );
+    } else {
+      regionSubset.poligono = region.poligono;
+    }
+  }
+  return regionSubset;
 };
 
-getRegionesFromOverpass = () => {
+getRegionesDeDpa = () => {
   return new Promise(async (resolve, reject) => {
     try {
-      var query = `
-        rel(id: 167454);
-        rel(r)[admin_level = 4] -> .regiones;
-        foreach.regiones -> .region(
-          (
-            .region;
-            way(r.region: "outer");
-            node(r.region: "admin_centre");
-            make sep;
-          );
-          out tags geom;
-        );
-      `;
-
-      var r = await overpassQuery(query);
-
-      var regiones = [];
-      for (const region of regionesIncompletas) {
-        var regionCompleta = await getRegion(region);
-        regiones.push(regionCompleta);
-      }
-
-      resolve(parseOverpassRegiones(r.elements));
+      axios
+        .get(`https://apis.digital.gob.cl/dpa/regiones`, {
+          timeout: 1000 * 60 * 10,
+        })
+        .then((r) => {
+          resolve(r.data);
+        })
+        .catch((e) => {
+          reject(e);
+        });
     } catch (error) {
       reject(error);
     }
   });
 };
 
-parseOverpassRegiones = (elementos) => {
-  var regiones = [];
-  var regionActual = {};
-  for (const elemento of elementos) {
-    if (elemento.type == "node") {
-      regionActual.centro = {
-        lat: elemento.lat,
-        lng: elemento.lon,
-      };
-    } else if (elemento.type == "way") {
-      if (!regionActual.hasOwnProperty("contorno")) {
-        regionActual.contorno = [];
-      }
-      var coordenadas = [];
-      for (const coordenada of elemento.geometry) {
-        coordenadas.push({
-          lat: coordenada.lat,
-          lng: coordenada.lon,
-        });
-      }
-      regionActual.contorno.push(coordenadas);
-    } else if (elemento.type == "relation") {
-      regionActual.codigo = elemento.tags["dpachile:id"];
-      regionActual.nombre = elemento.tags.name;
-      regionActual["ISO3166-2"] = elemento.tags["ISO3166-2"];
-    } else {
-      regionActual.contorno = ordenarCaminos(regionActual.contorno).flat(1);
-      regiones.push(regionActual);
-      regionActual = {};
+getRegionesDeOverpass = () => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      var query = `
+        rel(id: 167454);
+        rel(r)[admin_level = 4];
+
+        out tags;
+      `;
+
+      var r = await overpassQuery(query);
+
+      resolve(r);
+    } catch (error) {
+      reject(error);
     }
-  }
-  return regiones;
-};
-
-distanciaEntreCoordenadas = (coord1, coord2) => {
-  var lat1 = coord1.lat;
-  var lon1 = coord1.lng;
-  var lat2 = coord2.lat;
-  var lon2 = coord2.lng;
-
-  var radlat1 = (Math.PI * lat1) / 180;
-  var radlat2 = (Math.PI * lat2) / 180;
-  var theta = lon1 - lon2;
-  var radtheta = (Math.PI * theta) / 180;
-  var dist =
-    Math.sin(radlat1) * Math.sin(radlat2) +
-    Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
-  dist = Math.acos(dist);
-  dist = (dist * 180) / Math.PI;
-  dist = dist * 60 * 1.1515;
-  dist = dist * 1.609344;
-
-  if (!dist) {
-    dist = 0;
-  }
-  return dist;
-};
-
-ordenarCaminos = (caminos) => {
-  let copiaCaminos = caminos.slice();
-  let caminosOrdenados = [];
-  let caminoActual = copiaCaminos.pop();
-
-  while (copiaCaminos.length) {
-    let distancias = [];
-    caminosOrdenados.push(caminoActual);
-
-    let primeroActual = caminoActual[0];
-    let ultimoActual = caminoActual.slice().pop();
-
-    for (const c of copiaCaminos) {
-      let primero = c[0];
-      let ultimo = c.slice().pop();
-
-      let distanciaConPrimero = distanciaEntreCoordenadas(
-        ultimoActual,
-        primero
-      );
-      let distanciaConUltimo = distanciaEntreCoordenadas(ultimoActual, ultimo);
-
-      if (distanciaConPrimero < distanciaConUltimo) {
-        distancias.push({
-          d: distanciaConPrimero,
-          i: false,
-        });
-      } else {
-        distancias.push({
-          d: distanciaConUltimo,
-          i: true,
-        });
-      }
-    }
-
-    let soloDistancias = [];
-    for (const distancia of distancias) {
-      soloDistancias.push(distancia.d);
-    }
-    let indice = soloDistancias.indexOf(Math.min.apply(null, soloDistancias));
-    if (indice < 0) {
-      console.log(Math.min.apply(null, soloDistancias));
-    }
-
-    if (distancias[indice].i) {
-      copiaCaminos[indice] = copiaCaminos[indice].reverse();
-    }
-
-    caminoActual = copiaCaminos[indice];
-    copiaCaminos.splice(indice, 1);
-  }
-
-  caminosOrdenados.push(caminoActual);
-
-  return caminosOrdenados;
+  });
 };
 
 overpassQuery = (query) => {
@@ -194,8 +267,10 @@ overpassQuery = (query) => {
 
   return new Promise((resolve, reject) => {
     axios
-      .get(`${process.env.OVERPASS_URL}/interpreter?data=${q}`)
-      .then(async (r) => {
+      .get(`${process.env.OVERPASS_URL}/interpreter?data=${q}`, {
+        timeout: 1000 * 60 * 10,
+      })
+      .then((r) => {
         resolve(r.data);
       })
       .catch((e) => {

@@ -4,7 +4,6 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const compression = require("compression");
-const mongoose = require("mongoose");
 
 const router = require("./router/routes");
 
@@ -47,15 +46,6 @@ app.get("/", (req, res) => {
 });
 
 app.use("/v1", router);
-
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("Base de datos conectada correctamente");
-  });
 
 let puerto = process.env.PORT ? process.env.PORT : 3030;
 app.listen(puerto, () => {

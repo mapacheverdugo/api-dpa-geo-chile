@@ -17,6 +17,7 @@
     "express": "^4.17.1",
     "mongoose": "^5.9.10",
     "morgan": "^1.10.0",
+    "osmtogeojson": "^3.0.0-beta.4",
     "query-overpass": "^1.5.5",
     "simplify-js": "^1.2.4"
   },
