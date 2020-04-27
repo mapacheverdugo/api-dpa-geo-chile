@@ -21,9 +21,10 @@ router.get("/provincias/comunas/:codigoComuna", comunas.getOneByProvincia);
 router.get("/regiones", regiones.getAll);
 router.get("/regiones/generar", regiones.generar);
 router.get("/regiones/:codigoRegion", regiones.getOne);
-/*
+
 router.get("/regiones/:codigoRegion/provincias", provincias.getAllByRegion);
 router.get("/regiones/:codigoRegion/provincias/:codigoProvincia", provincias.getOneByRegion);
+/*
 router.get("/regiones/:codigoRegion/provincias/:codigoProvincia/comunas", comunas.getAllByRegionAndProvincia);
 router.get("/regiones/:codigoRegion/provincias/:codigoProvincia/comunas/:codigoComuna", comunas.getAllByRegionAndProvincia);
 */
