@@ -7,7 +7,7 @@ const provincias = require("../controllers/provincias.controller");
 const regiones = require("../controllers/regiones.controller");
 
 router.get("/comunas", comunas.getAll);
-router.get("/comunas/generar", comunas.generar);
+//router.get("/comunas/generar", comunas.generar);
 router.get("/comunas/:codigoComuna", comunas.getOne);
 router.get("/provincias/:codigoProvincia/comunas", comunas.getAllByProvincia);
 router.get("/provincias/:codigoProvincia/comunas/:codigoComuna", comunas.getOneByProvincia);
@@ -17,13 +17,13 @@ router.get("/regiones/:codigoRegion/provincias/:codigoProvincia/comunas", comuna
 router.get("/regiones/:codigoRegion/provincias/:codigoProvincia/comunas/:codigoComuna", comunas.getOneByRegionAndProvincia);
 
 router.get("/provincias", provincias.getAll);
-router.get("/provincias/generar", provincias.generar);
+//router.get("/provincias/generar", provincias.generar);
 router.get("/provincias/:codigoProvincia", provincias.getOne);
 router.get("/regiones/:codigoRegion/provincias", provincias.getAllByRegion);
 router.get("/regiones/:codigoRegion/provincias/:codigoProvincia", provincias.getOneByRegion);
 
 router.get("/regiones", regiones.getAll);
-router.get("/regiones/generar", regiones.generar);
+//router.get("/regiones/generar", regiones.generar);
 router.get("/regiones/:codigoRegion", regiones.getOne);
 
 module.exports = router;

@@ -4,7 +4,7 @@ const axios = require("axios");
 const simplify = require("simplify-js");
 
 var regionesJson = require("../static/regiones.json");
-var regionesGeoJson = require("../../regiones.json");
+//var regionesGeoJson = require("../../regiones.json");
 
 exports.getAll = async (req, res) => {
   try {
