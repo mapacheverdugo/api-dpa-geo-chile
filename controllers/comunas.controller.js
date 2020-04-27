@@ -48,6 +48,48 @@ exports.getOne = async (req, res) => {
   }
 };
 
+exports.getAllByProvincia = async (req, res) => {
+  try {
+    var comunasSubset = comunasJson.filter(c => c.padre.codigo == req.params.codigoProvincia).map((comuna) =>
+      getComunaSubset(comuna, req.query)
+    );
+
+    res.status(200).json(comunasSubset);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error,
+    });
+  }
+};
+
+exports.getOneByProvincia = async (req, res) => {
+  try {
+    var coincidencias = comunasJson.filter(
+      (r) => r.codigo == req.params.codigoComuna && c.padre.codigo == req.params.codigoProvincia
+    );
+
+    if (coincidencias.length) {
+      var comuna = coincidencias[0];
+
+      var comunaSubset = getComunaSubset(
+        comuna,
+        req.query
+      );
+      res.status(200).json(comunaSubset);
+    } else {
+      res.status(500).json({
+        error: `No se econtró comuna con código ${req.params.codigoComuna} en la provincia ${req.params.codigoProvincia}`,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error,
+    });
+  }
+};
+
 exports.getAllByRegion = async (req, res) => {
   try {
 
@@ -82,6 +124,48 @@ exports.getOneByRegion = async (req, res) => {
     } else {
       res.status(500).json({
         error: `No se econtró comuna con código ${req.params.codigoComuna} en la región ${req.params.codigoRegion}`,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error,
+    });
+  }
+};
+
+exports.getAllByRegionAndProvincia = async (req, res) => {
+  try {
+    var comunasSubset = comunasJson.filter(c => c.padre.codigo.startsWith(req.params.codigoRegion) && c.padre.codigo == req.params.codigoProvincia).map((comuna) =>
+      getComunaSubset(comuna, req.query)
+    );
+
+    res.status(200).json(comunasSubset);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      error,
+    });
+  }
+};
+
+exports.getOneByRegionAndProvincia = async (req, res) => {
+  try {
+    var coincidencias = comunasJson.filter(
+      (r) => r.codigo == req.params.codigoComuna && r.padre.codigo.startsWith(req.params.codigoRegion) && c.padre.codigo == req.params.codigoProvincia
+    );
+
+    if (coincidencias.length) {
+      var comuna = coincidencias[0];
+
+      var comunaSubset = getComunaSubset(
+        comuna,
+        req.query
+      );
+      res.status(200).json(comunaSubset);
+    } else {
+      res.status(500).json({
+        error: `No se econtró comuna con código ${req.params.codigoComuna} en la región ${req.params.codigoRegion} y provincia ${req.params.codigoProvincia}`,
       });
     }
   } catch (error) {
